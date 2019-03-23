@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+  <title>Document</title>
+</head>
+<body>
+  <canvas id="canvas" style="width: 100vw;height: 100vh;"></canvas>
+  <script>
+    function moving(ctx, x, y) {
+      let screenW = $(window).width();
+      let screenH = $(window).height();
+      
+      let colorArr = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
+      for (let i = 0; i < 10; i++) {
+        let color = colorArr[Math.floor(Math.random() * 16)] + colorArr[Math.floor(Math.random() * 16)] + colorArr[Math.floor(Math.random() * 16)];
+
+        point.push({
+          x: Math.random() * screenW,
+          y: Math.random() * screenH,
+          speedX: 4 * (Math.random() - 0.5),
+          speedY: 5 * (Math.random() - 0.5),
+          color: "#" + color,
+          r: Math.random() * 3 + 1
+        });
+      }
+      drawMoving();
+    }
+    function drawMoving() {
+      console.log(point);
+      
+      let screenW = $(window).width();
+      let screenH = $(window).height();
+      for (let i = 0; i < point.length; i++) {
+        let x = point[i].x
+        let y = point[i].y
+        drawPoint(ctx, x, y, point[i].color, point[i].r);
+        if (x + point[i].r > screenW || x - point[i].r < 0) {
+          point[i].speedX = -point[i].speedX;
+        }
+        if (y + point[i].r > screenH || y - point[i].r < 0) {
+          point[i].speedY = -point[i].speedY;
+        }
+        point[i].x += point[i].speedX;
+        point[i].y += point[i].speedY;
+      }
+      // ctx.setGlobalAlpha(0.01)
+      // ctx.setFillStyle('#fff')
+
+      ctx.globalAlpha = 0.01;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, screenW, screenH);
+      // ctx.setGlobalAlpha(1);
+      ctx.globalAlpha = 1;
+      // ctx.draw(true);
+      setTimeout(() => {
+        drawMoving();
+      }, 1000);
+      // requestAnimationFrame(() => drawMoving());
+    }
+    function drawPoint(ctx, x, y, color, r) {
+      // ctx.setStrokeStyle(color);
+      ctx.beginPath();
+      // ctx.setLineWidth(1);
+      ctx.lineWidth = 1;
+      ctx.moveTo(x, y);
+      ctx.arc(x, y, r, 0, 2 * Math.PI);
+      // ctx.setFillStyle(color);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.closePath();
+    }
+    function drawLightning(ctx, x, y, n, p) {
+      if (n <= 0) {
+        return
+      }
+      let i = 0
+      let lighting = setInterval(() => {
+        i++
+        let x0 = x;
+        let y0 = y;
+        console.log(p);
+
+        x += 10 * (Math.random() - 0.5 + p);
+        y += 10 * Math.random() + 2 * p
+        if (i > 30) {
+          clearInterval(lighting)
+        } else {
+          drawLine(ctx, x0, y0, x, y, n)
+        }
+      }, 10)
+    }
+    function drawLine(ctx, x0, y0, x, y, n) {
+      if (x > 320 || y > 500) {
+        y = 0;
+        return
+      }
+      // ctx.setStrokeStyle("#fff");
+      ctx.strokeStyle = "#fff"
+      // ctx.setLineWidth(1 + n * 0.3);
+      ctx.lineWidth = 1 + n * 0.3;
+      ctx.moveTo(x0, y0)
+      ctx.lineTo(x, y)
+      // context.setStrokeStyle("#00ff00");
+      // context.setLineWidth(5);
+      // context.rect(0+i, i>50?0:i, 100, 100);
+      // context.stroke();
+      // context.setStrokeStyle("#ff0000");
+      // context.setLineWidth(2);
+      // context.moveTo(160, 100);
+      // context.arc(100, 100, 60, 0, i, true);
+      ctx.stroke();
+      // ctx.draw(true);
+      if (y - y0 < 4) {
+        let p = x - x0 > 0 ? 0.25 : -0.25
+        drawLightning(ctx, x, y, --n, p)
+        console.log(x);
+
+      }
+    }  
+  // let ctx = wx.createCanvasContext('bg');
+  let point = []
+
+  let ctx = document.createElement('canvas').getContext('2d')
+  // requestAnimationFrame(moving);
+  moving(ctx);
+  drawPoint(ctx, 20, 30, '#f50', 3)
+
+  // drawMoving();
+
+
+  </script>
+</body>
+</html>
