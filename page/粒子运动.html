@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id=c></canvas>
+    <script>
+    // create a canvas element
+        var canvas = document.createElement("canvas")
+
+        // attach element to DOM
+        document.getElementsByTagName("body")[0].appendChild(canvas)
+
+        // background color [r, g, b] 
+        var bg = [20, 0, 30]
+        var wh = window.innerHeight
+        // get the canvas context (this is the part we draw to)
+        var ctx = canvas.getContext("2d")
+
+        var sharedloop1 = new Looper(250 + 20 * Math.random(), 60 * Math.random())
+
+        function setup() {
+            // setup the canvas size to match the window
+            canvas.width = window.innerWidth
+            canvas.height = window.innerHeight
+
+            wh = window.innerWidth < window.innerHeight ? window.innerWidth : window.innerHeight
+
+            // set the 0,0 point to the middle of the canvas, this is not necessary but it can be handy
+            ctx.translate(canvas.width / 2, canvas.height / 2)
+
+            fill(bg, 1)
+        }
+
+        // fill entire canvas with a preset color
+        function fill(rgb, amt) {
+            ctx.beginPath(); // start path
+            ctx.rect(- canvas.width / 2, - canvas.height / 2, canvas.width, canvas.height) // set rectangle to be the same size as the window
+            ctx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${amt})` // use the rgb array/color for fill, and amt for opacity
+            ctx.fill() // do the drawing
+        }
+
+        function drawCircle(x, y, r, color) {
+            ctx.beginPath()
+            ctx.arc(x, y, r, 0, 2 * Math.PI)
+            ctx.fillStyle = color || 'white'
+            ctx.fill()
+            ctx.closePath()
+        }
+
+        function Particle() {
+            // initialize loopers with random trange and offset
+            this.loop2 = new Looper(520 + 70 * Math.random(), 140 * Math.random())
+            this.loop3 = new Looper(290 + 20 * Math.random(), 140 * Math.random())
+            this.history = []
+            this.history_max = 40
+            // this.x = null
+            // this.y = null
+            this.offset = Math.random() // some color offset for the color
+
+            this.draw = function () {
+                // set x,y, radius, and color params
+                var x = (this.loop2.sin * (wh / 3 - 10) + this.loop3.cos * 120) * (sharedloop1.sinNorm / 2 + 0.5)
+                var y = (this.loop2.cos * (wh / 3 - 10) + this.loop3.sin * 120) * (sharedloop1.cosNorm / 2 + 0.5)
+                var r = 0.2 + 3 * this.loop3.sinNorm * this.loop3.cosNorm // set the radius
+                var c = `hsla(${310 + 60 * (this.loop2.cosNorm + this.offset) * this.loop3.sinNorm}, ${100}%, ${50 + 10 * this.loop3.sin}%, ${1})`
+
+                ctx.beginPath()
+                ctx.strokeStyle = c
+                ctx.lineCap = 'round'
+                ctx.lineWidth = r
+                var tx = x
+                var ty = y
+                for (var i = 0; i < Math.min(this.history_max * this.loop2.cosNorm, this.history.length); i++) {
+                    ctx.moveTo(tx, ty)
+                    tx = this.history[i][0]
+                    ty = this.history[i][1]
+                    ctx.lineTo(tx, ty)
+                }
+                ctx.stroke()
+                drawCircle(x, y, r * 2 + 3, c);  // draw the circle
+
+                this.loop2.update() // update looper
+                this.loop3.update() // update looper
+
+                this.history.unshift([x, y])
+                if (this.history.length > this.history_max) {
+                    this.history.pop()
+                }
+            }
+        }
+
+        // initialize a set of particle
+        var particles = []
+        for (var i = 0; i < 90; i++) {
+            particles.push(new Particle())
+        }
+
+        function draw() {
+            // fill context with background color 
+            fill(bg, 0.36)
+
+            // update all the particles
+            for (var i = 0; i < particles.length; i++) {
+                particles[i].draw() // do it once
+            }
+
+            sharedloop1.update()
+
+            // this is a draw loop, this will execute frequently and is comparable to EnterFrame on other platform
+            window.requestAnimationFrame(function () { draw() })
+        }
+
+        // start enterFrame loop
+        // window.requestAnimationFrame(draw);
+        draw()
+
+        // force running setup
+        setup()
+
+        // re-setup canvas when the size of the window changes 
+        window.addEventListener("resize", setup)
+
+        // create a class to hold value and have built in incrementing functionality
+        function Looper(steps, start) {
+            this.val = start || 0 // set value to start value if defined, or 1
+            this.steps = steps || 100 // set steps to passed value or default to 100
+            this.norm = this.val / this.range // initialize normalized value (between 0 and 1)
+            this.sin = Math.sin(this.norm * Math.PI * 2) // get sine value from norm normalized to [0, 2PI]
+            this.sinNorm = (this.sin + 1) / 2 // normalize sin to [0,1]
+            this.cos = Math.cos(this.norm * Math.PI * 2) // get cosine value from norm normalized to [0, 2PI]
+            this.cosNorm = (this.cos + 1) / 2 // normalize cos to [0,1]
+
+            this.update = function () {
+                this.val = (this.val + 1) % this.steps // update value
+                this.norm = this.val / this.steps // update normalize value (between 0 and 1)
+                this.sin = Math.sin(this.norm * Math.PI * 2) // get sine value from norm normalized to [0, 2PI]
+                this.sinNorm = (this.sin + 1) / 2 // normalize sine to [0,1]
+                this.cos = Math.cos(this.norm * Math.PI * 2) // get cosine value from norm normalized to [0, 2PI]
+                this.cosNorm = (this.cos + 1) / 2 // normalize cos to [0,1]
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0,minimal-ui:ios">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      outline: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    .start{
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script>
+  <div></div>
+  <div class="start">start</div>
+  <script>
+  var camera, scene, renderer,
+    geometry, material, mesh;
+
+  init();
+  animate();
+
+  function init() {
+    
+
+    clock = new THREE.Clock();
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.z = 1000;
+    scene.add(camera);
+
+    geometry = new THREE.CubeGeometry(200, 200, 200);
+    material = new THREE.MeshLambertMaterial({ color: 0xaa6666, wireframe: false });
+    mesh = new THREE.Mesh(geometry, material);
+    // scene.add( mesh );
+    cubeSineDriver = 0;
+
+    textGeo = new THREE.PlaneGeometry(300, 300);
+    THREE.ImageUtils.crossOrigin = ''; //Need this to pull in crossdomain images from AWS
+    textTexture = THREE.ImageUtils.loadTexture('/effect/page/烟雾/rovelast.png');
+    // textTexture = THREE.ImageUtils.loadTexture('/effect/page/烟雾/6368794829269882051989767.png');
+    textMaterial = new THREE.MeshLambertMaterial({ color: 0x00ffff, opacity: 1, map: textTexture, transparent: true, blending: THREE.AdditiveBlending })
+    text = new THREE.Mesh(textGeo, textMaterial);
+    text.position.z = 800;
+    scene.add(text);
+
+    light = new THREE.DirectionalLight(0xffffff, 0.5);
+    light.position.set(-1, 0, 1);
+    scene.add(light);
+
+    smokeTexture = THREE.ImageUtils.loadTexture('/effect/page/烟雾/6368794829269882051989767.png');
+    // smokeTexture = THREE.ImageUtils.loadTexture('/effect/page/烟雾/6368794836974573524718408.png');
+    smokeMaterial = new THREE.MeshLambertMaterial({ color: 0x00dddd, map: smokeTexture, transparent: true });
+    smokeGeo = new THREE.PlaneGeometry(300, 300);
+    smokeParticles = [];
+
+
+    for (p = 0; p < 150; p++) {
+      var particle = new THREE.Mesh(smokeGeo, smokeMaterial);
+      particle.position.set(Math.random() * 500 - 250, Math.random() * 500 - 250, Math.random() * 1000 - 100);
+      particle.rotation.z = Math.random() * 360;
+      scene.add(particle);
+      smokeParticles.push(particle);
+    }
+
+    document.body.appendChild(renderer.domElement);
+
+  }
+
+  function animate() {
+
+    // note: three.js includes requestAnimationFrame shim
+    delta = clock.getDelta();
+    requestAnimationFrame(animate);
+    evolveSmoke();
+    render();
+  }
+
+  function evolveSmoke() {
+    var sp = smokeParticles.length;
+    while (sp--) {
+      smokeParticles[sp].rotation.z += (delta * 0.2);
+    }
+  }
+
+  function render() {
+
+    mesh.rotation.x += 0.005;
+    mesh.rotation.y += 0.01;
+    cubeSineDriver += .01;
+    mesh.position.z = 100 + (Math.sin(cubeSineDriver) * 500);
+    renderer.render(scene, camera);
+
+  }
+
+
+
+
+
+
+
+  </script>
+</body>
+
+
+</html>
