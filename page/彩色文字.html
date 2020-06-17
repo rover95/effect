@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+      html {
+        background-color: #1d1f20;
+      }
+
+      canvas {
+        left: 5%;
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+    </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+  <script>
+    $(document).ready(function () {
+        var naturalWidth = 1356,
+          naturalHeight = 380,
+          noPoints = 24,
+          pointsArr = [],
+          sizeDifference = 0.5,
+          targetWidth,
+          targetHeight,
+          heightAdjust;
+
+        var logo = "232.5,115.4,228.3,30.0,164.1,30.0&96.1,120.0,30.0,99.4,30.0,205.9&30.0,290.1,98.0,345.9,160.3,345.9&295.3,345.9,339.7,127.5,339.7,78.9&339.7,-23.4,303.7,86.4,303.7,176.9&303.7,205.8,314.4,345.9,381.8,345.9&473.4,345.9,504.8,128.4,504.8,68.9&504.8,1.4,473.0,62.6,473.0,146.1&473.0,195.5,486.6,345.7,539.8,345.7&609.9,345.7,661.0,182.9,661.0,115.9&661.0,-65.1,616.1,93.0,616.1,112.9&616.1,157.9,741.1,71.7,741.1,71.7&741.1,71.7,674.1,168.2,674.1,267.8&674.1,308.9,698.8,345.9,735.3,345.9&851.2,345.9,850.7,53.0,850.7,53.0&850.7,53.0,911.3,208.9,918.5,349.1&997.2,349.1,1024.5,189.5,1024.5,64.8&1024.5,0.8,985.4,43.5,985.4,115.4&985.4,185.6,1085.0,192.3,1135.7,192.3&1200.8,192.3,1295.4,180.3,1295.4,105.3&1295.4,71.3,1272.7,49.2,1240.6,49.2&1189.5,49.2,1124.6,125.9,1124.6,236.9&1124.6,277.0,1143.1,346.4,1206.7,346.4&1246.2,346.4,1305.1,305.9,1325.5,257.0";
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+
+        function init() {
+          resizeCanvas(canvas);
+          window.requestAnimationFrame(draw);
+        }
+
+        function invertVal(a) {
+          var b;
+          if (a > 0.5) {
+            b = 1;
+          } else {
+            b = -1;
+          }
+          return b;
+        }
+
+        function logoToPoints() {
+          var fullPoints = logo.split('&');
+
+          for (var i = 0; i < noPoints; i++) {
+
+            var pointControllers = fullPoints[i].split(',');
+
+            pointsArr[i] = {};
+
+            pointsArr[i].scx = pointControllers[0] * sizeDifference;
+            pointsArr[i].scy = pointControllers[1] * sizeDifference;
+            pointsArr[i].ecx = pointControllers[2] * sizeDifference;
+            pointsArr[i].ecy = pointControllers[3] * sizeDifference;
+            pointsArr[i].ex = pointControllers[4] * sizeDifference;
+            pointsArr[i].ey = pointControllers[5] * sizeDifference;
+            pointsArr[i].countX = Math.round(Math.random() * 100);
+            pointsArr[i].countY = Math.round(Math.random() * 100);
+            pointsArr[i].invert = invertVal(Math.random());
+            pointsArr[i].wiggleX = 0;
+            pointsArr[i].wiggleY = 0;
+
+            if (i === 0) {
+              pointsArr[i].sx = 166.4 * sizeDifference;
+              pointsArr[i].sy = 115.4 * sizeDifference;
+            } else {
+              var prevPoints = fullPoints[i - 1].split(',');
+              pointsArr[i].sx = prevPoints[4] * sizeDifference;
+              pointsArr[i].sy = prevPoints[5] * sizeDifference;
+            }
+            debugger
+          }
+        }
+
+        function cubicN(T, a, b, c, d) {
+          var t2 = T * T;
+          var t3 = t2 * T;
+          return a + (-a * 3 + T * (3 * a - a * T)) * T + (3 * b + T * (-6 * b + b * 3 * T)) * T + (c * 3 - c * 3 * T) * t2 + d * t3;
+        }
+
+        function getCubicBezieratT(startPt, controlPt1, controlPt2, endPt, T) {
+          var a = cubicN(T, startPt, controlPt1, controlPt2, endPt);
+          return (a);
+        }
+
+        var colors = [
+          { r: 255, g: 0, b: 100 },
+          { r: 0, g: 105, b: 200 },
+          { r: 0, g: 255, b: 120 },
+          { r: 255, g: 255, b: 0 },
+        ],
+          noCircles = 60,
+          maxColors = colors.length,
+          cIndex = Math.floor(Math.random() * (maxColors)),
+          total = 1,
+          segment = Math.floor((noCircles * noPoints) / maxColors) / 2;
+
+        function getColor() {
+          var r, g, b, t, c1, c2;
+
+          c1 = colors[cIndex];                           // get current color from array
+          c2 = colors[(cIndex + 1) % maxColors];         // get next color
+          t = Math.min(1, total / segment);              // calculate t
+
+          if (total++ > segment - 1) {
+            total = 0;
+            if (++cIndex >= maxColors) { cIndex = 0; }       // rotate color array
+          }
+
+          r = c1.r + (c2.r - c1.r) * t;                  // interpolate color
+          g = c1.g + (c2.g - c1.g) * t;
+          b = c1.b + (c2.b - c1.b) * t;
+
+
+          return "rgb(" + (r | 0) + "," + (g | 0) + "," + (b | 0) + ")";
+
+
+        }
+
+        function resizeCanvas() {
+          logoToPoints();
+          targetWidth = $(this).width() * 0.9;
+          targetHeight = $(this).height();
+          sizeDifference = targetWidth / naturalWidth;
+          heightAdjust = targetHeight / 2 - (naturalHeight * sizeDifference / 2);
+          pointsArr = [];
+          logoToPoints();
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+        }
+
+        function wiggleLooper(a) {
+          var freq = 300,
+            amp = 3;
+          var b = Math.cos(a / freq) * amp;
+          return b;
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, targetWidth, targetHeight);
+
+          var prevWiggleX = 0,
+            prevWiggleY = 0;
+
+          for (var i = 0; i < noPoints; i++) {
+            pointsArr[i].wiggleX = wiggleLooper(pointsArr[i].countX);
+            pointsArr[i].wiggleY = wiggleLooper(pointsArr[i].countY);
+
+            if (i === 0) {
+              prevWiggleX = pointsArr[i].wiggleX;
+              prevWiggleY = pointsArr[i].wiggleY;
+            }
+
+
+            for (var ii = 0; ii < 100; ii += 100 / noCircles) {
+              ctx.beginPath();
+              ctx.arc(
+                getCubicBezieratT(
+                  pointsArr[i].sx + prevWiggleX,// pointsArr[i].wiggleX,
+                  pointsArr[i].scx + -pointsArr[i].wiggleX,
+                  pointsArr[i].ecx + pointsArr[i].wiggleX,
+                  pointsArr[i].ex + pointsArr[i].wiggleX,
+                  (ii / 100)),
+                getCubicBezieratT(
+                  pointsArr[i].sy + prevWiggleY + heightAdjust,
+                  pointsArr[i].scy + pointsArr[i].wiggleY + heightAdjust,
+                  pointsArr[i].ecy + -pointsArr[i].wiggleY + heightAdjust,
+                  pointsArr[i].ey + pointsArr[i].wiggleY + heightAdjust,
+                  (ii / 100)),
+                26 * sizeDifference, 0, 2 * Math.PI);
+
+              ctx.fillStyle = getColor();
+              ctx.fill();
+            }
+
+            prevWiggleX = pointsArr[i].wiggleX;
+            prevWiggleY = pointsArr[i].wiggleY;
+
+            pointsArr[i].countX += (Math.random() * 100) * pointsArr[i].invert;
+            pointsArr[i].countY += (Math.random() * 100) * pointsArr[i].invert;
+
+          }
+
+          window.requestAnimationFrame(draw);
+
+        }
+
+        $(window).on('resize', function () {
+          resizeCanvas();
+        });
+
+        init();
+
+      });
+  </script>
+</body>
+</html>
