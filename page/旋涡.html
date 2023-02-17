@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    html {
+      height: 100%;
+    }
+
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: black;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    var elements = 1000; // more the merrier
+
+    var shiftmod = 1 / 6; // modifier for the x&y distance between each element: DEFAULT=1
+    var angle = 37; // degree to rotate the canvas between each element
+    var scale = 5; // number of elements that would fit in the available height
+
+    var colorstep = 0.75; // how quickly to adjust the color each frame
+    var coloralpha = 0.50; // alpha to render elements in
+    var colorcap = 255; // maximum color brightness
+
+    var rotation = 1 / 10; // how much to rotate the canvas each frame
+    var clearScreenAlpha = 0.90; // alpha value for the screen erase each frame
+
+    var zoom = 1.50; // zoom level
+
+    var triheight = 0.10; // modifier for the triangle height (lower is shorter)
+
+    ////////////////////
+
+    function start() {
+      resize();
+      init();
+      tick();
+    }
+
+    var colors = new Array(elements);
+    var increments = new Array(elements);
+
+    var size;
+    var shift;
+
+    function init() {
+      var targetheight = canvas.height * zoom;
+      shift = targetheight / elements * shiftmod;
+      size = Math.max(1, targetheight / scale);
+
+      for (var i = 0; i < elements; i++) {
+        increments[i] = 0;
+
+        colors[i] = Math.round(colorcap - colorcap * i / elements);
+      }
+    }
+
+    var framesRendered = 0;
+
+    function draw() {
+      var canvas = document.getElementById("canvas");
+      if (canvas.getContext) {
+        var context = canvas.getContext("2d");
+
+        context.setTransform(1, 0, 0, 1, 0, 0);
+
+        clearCanvas(context);
+
+        // set the origin
+        context.translate(canvas.width / 2, canvas.height / 2);
+
+        // rotate the canvas based on the frame
+        context.rotate(2 * Math.PI / 360 * framesRendered * rotation);
+
+        // draw them all
+        for (var i = 0; i < elements; i++) {
+          if (getRandom(1, 5) == 1) {
+            if (increments[i] !== 0)
+              increments[i] = 0;
+            else
+              increments[i] = getRandom(-1, 1) * colorstep;
+          }
+
+          colors[i] += increments[i];
+          if (colors[i] < 0) {
+            colors[i] = 0;
+            increments[i] = colorstep;
+          } else if (colors[i] > colorcap) {
+            colors[i] = colorcap;
+            increments[i] = -colorstep;
+          }
+
+          context.fillStyle = "rgba(" +
+            Math.floor(colors[i]) + "," +
+            Math.floor(colors[i]) + "," +
+            "0, " + coloralpha + ")";
+
+          context.rotate(2 * Math.PI / 360 * angle);
+
+          context.beginPath();
+          context.moveTo(i * shift - size / 2, size * triheight + i * shift);
+          context.lineTo(i * shift, i * shift);
+          context.lineTo(i * shift + size / 2, size * triheight + i * shift);
+          context.closePath();
+          context.fill();
+        }
+
+        framesRendered++;
+      }
+    }
+
+    function tick() {
+      // draw a frame
+      draw();
+
+      // trigger the timer for the next frame...
+      requestAnimFrame(tick);
+    }
+
+    function clearCanvas(context) {
+      context.fillStyle = "rgba(0, 0, 0, " + clearScreenAlpha + " )";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    window.requestAnimFrame = (function () {
+      return window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.oRequestAnimationFrame ||
+        window.msRequestAnimationFrame ||
+        function (callback) {
+          window.setTimeout(callback, 1000 / 60);
+        };
+    })();
+
+    // mafs
+    function getRandom(min, max) {
+      return Math.round(Math.random() * (max - min) + min);
+    }
+
+    function resize() {
+      var canvas = document.getElementById("canvas");
+      if (canvas.getContext) {
+        canvas.width = parseInt(getComputedStyle(document.body).width) - 4;
+        canvas.height = parseInt(getComputedStyle(document.body).height) - 4;
+      }
+    }
+
+    start();
+  </script>
+</body>
+
+</html>

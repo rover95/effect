@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: clip;
+      background: #1B2021;
+    }
+
+    main {
+      display: flex;
+      height: 100vh;
+    }
+
+    canvas {
+      margin: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/p5.js/1.2.0/p5.min.js"></script>
+  <script>
+    const REDS = [
+      "#e45064",
+      "#e45064",
+      "#e65d6c",
+      "#ec6a5f",
+      "#e13750",
+      "#c03671",
+      "#643d7a",
+      "#284671",
+      "#284671",
+      "#284671"
+    ];
+    const YELLOWS = [
+      "#ef9f50",
+      "#f2c061",
+      "#f3bf61"
+    ];
+    const LIGHT_BLUES = [
+      "#b7cbef",
+      "#e2eaf4",
+      "#e2eaf4"
+    ];
+    const DARK_BLUES = [
+      "#3271ac",
+      "#4282b6",
+      "#7abcec"
+    ];
+    const backgroundColor = "#ffffff";
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const totalFrames = 1000;
+    let frameCount = 0;
+    let recording = false;
+
+    function setup() {
+      canvas = createCanvas(width, height, WEBGL);
+      noiseSeed(20);
+    }
+
+    let delta = 0;
+    let delta1 = 0;
+    let delta2 = 0;
+    let delta3 = 0;
+
+    function draw() {
+      frameCount += 1;
+      let frameDelta = (2 * Math.PI * (frameCount % totalFrames)) / totalFrames;
+
+      let bg = color(backgroundColor);
+      background(bg);
+
+      drawDarkBlues(DARK_BLUES, -width, -height * 0.7, PI / 150, 4);
+      drawDarkBlues(DARK_BLUES, -width, -400, PI / 20, 2);
+      drawLightBlues(LIGHT_BLUES);
+      drawYellows(YELLOWS);
+      drawReds(REDS);
+    }
+
+    function drawDarkBlues(colors, _x, _y, _r, _s) {
+      push();
+
+      rotate(_r);
+
+      translate(_x, _y);
+      scale(_s, _s);
+
+      noStroke();
+
+      let size = 100;
+      let x = -(size / 2);
+      let y = 0;
+
+      beginShape(TRIANGLE_STRIP);
+
+      for (let i = 0; i < colors.length - 1; i++) {
+        let j = 0;
+
+        while (j < width * 2 + size / 2) {
+
+          let waveSize = 15;
+          let y0 = y + sin(delta3 + j + x) * waveSize;
+
+          delta3 += 0.00003;
+
+          let y2 = y + (size * 1.2) + sin(delta3 + j + x) * waveSize;
+
+          if (j % 2 == 0) {
+            fill(colors[i]);
+            vertex(x, y0); //left 1
+            fill(colors[i + 1]);
+            vertex(x + size / 2, y2); //tip 3
+          }
+
+          x += size / 2;
+          j += size / 2;
+        }
+        x = -(size / 2);
+        y += size;
+      }
+
+      endShape(CLOSE);
+
+      pop();
+    }
+
+
+    function drawLightBlues(colors) {
+      push();
+
+      rotate(PI / 20);
+
+      translate(-width / 2, -200);
+      scale(2, 2);
+
+      noStroke();
+
+      let size = 100;
+      let x = -(size / 2);
+      let y = 0;
+
+      beginShape(TRIANGLE_STRIP);
+
+      for (let i = 0; i < colors.length - 1; i++) {
+        let j = 0;
+
+        while (j < width * 2 + size / 2) {
+
+          let waveSize = 15;
+          let y0 = y + sin(delta2 + j + x) * waveSize;
+
+          delta2 += 0.0003;
+
+          let y2 = y + (size * 1.2) + sin(delta2 + j + x) * waveSize;
+
+          if (j % 2 == 0) {
+            fill(colors[i]);
+            vertex(x, y0); //left 1
+            fill(colors[i + 1]);
+            vertex(x + size / 2, y2); //tip 3
+          }
+
+          x += size / 2;
+          j += size / 2;
+        }
+        x = -(size / 2);
+        y += size;
+      }
+
+      endShape(CLOSE);
+
+      pop();
+    }
+
+    function drawYellows(colors) {
+      push();
+
+      rotate(PI / 10);
+
+      translate(-width / 2, -20);
+      scale(2, 2);
+
+      noStroke();
+
+      let size = 50;
+      let x = -(size / 2);
+      let y = 0;
+
+      beginShape(TRIANGLE_STRIP);
+
+      for (let i = 0; i < colors.length - 1; i++) {
+        let j = 0;
+
+        while (j < width * 2 + size / 2) {
+
+          let waveSize = 10;
+          let y0 = y + sin(delta1 + j + x) * waveSize;
+
+          delta1 += 0.0001;
+
+          let y2 = y + (size * 1.2) + sin(delta1 + j + x) * waveSize;
+
+          if (j % 2 == 0) {
+            fill(colors[i]);
+            vertex(x, y0); //left 1
+            fill(colors[i + 1]);
+            vertex(x + size / 2, y2); //tip 3
+          }
+
+          x += size / 2;
+          j += size / 2;
+        }
+        x = -(size / 2);
+        y += size;
+      }
+
+      endShape(CLOSE);
+
+      pop();
+    }
+
+    function drawReds(colors) {
+      push();
+
+      rotate(PI / 6);
+
+      translate(-width, 0);
+      scale(1, 1);
+
+      noStroke();
+
+      let size = 100;
+      let x = -(size / 2);
+      let y = 0;
+
+      beginShape(TRIANGLE_STRIP);
+
+      for (let i = 0; i < colors.length - 1; i++) {
+        let j = 0;
+
+        while (j < width * 2 + size / 2) {
+          let waveSize = 20;
+
+          let y0 = y + sin(delta + j + x) * waveSize;
+
+          delta += 0.0001;
+
+          let y2 = y + (size * 1.2) + sin(delta + j + x) * waveSize;
+
+          if (j % 2 == 0) {
+            fill(colors[i]);
+            vertex(x, y0); //left 1
+            fill(colors[i + 1]);
+            vertex(x + size / 2, y2); //tip 3
+          }
+
+          x += size / 2;
+          j += size / 2;
+        }
+        x = -(size / 2);
+        y += size;
+      }
+
+      endShape(CLOSE);
+
+      pop();
+    }
+  </script>
+</body>
+
+</html>

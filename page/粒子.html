@@ -6,18 +6,26 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
   <title>Document</title>
+  <style>
+    *{
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
 </head>
 <body>
-  <canvas id="canvas" style="width: 100vw;height: 100vh;"></canvas>
+  <canvas id="canvas" ></canvas>
   <script>
+    let screenW = $(window).width();
+      let screenH = $(window).height();
+      // let screenW = 500;
+      // let screenH = 500;
     function moving(ctx, x, y) {
-      // let screenW = $(window).width();
-      // let screenH = $(window).height();
-      let screenW = 400;
-      let screenH = 810;
+      
       
       let colorArr = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
-      for (let i = 0; i < 1000; i++) {
+      for (let i = 0; i < 100; i++) {
         let color = colorArr[Math.floor(Math.random() * 16)] + colorArr[Math.floor(Math.random() * 16)] + colorArr[Math.floor(Math.random() * 16)];
 
         point.push({
@@ -32,12 +40,6 @@
       drawMoving();
     }
     function drawMoving() {
-      // console.log(point);
-      
-      // let screenW = $(window).width();
-      // let screenH = $(window).height();
-      let screenW = 400;
-      let screenH = 800;
       for (let i = 0; i < point.length; i++) {
         let x = point[i].x
         let y = point[i].y
@@ -130,6 +132,8 @@
   let point = []
 
   var c = document.getElementById("canvas");
+  c.width = screenW;
+  c.height = screenH;
   var ctx = c.getContext("2d");
   // let ctx = document.createElement('canvas').getContext('2d')
   // requestAnimationFrame(moving);
