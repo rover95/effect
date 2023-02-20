@@ -3,48 +3,292 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0,minimal-ui:ios">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0,minimal-ui:ios">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>page effect</title>
   <link rel="stylesheet" href="">
   <script src=""></script>
   <style>
-    a{
+    body {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 50px;
+    }
+
+    a {
+      position: relative;
       display: inline-block;
       text-align: center;
-      padding: 10px 20px;
-      background-color: #19f;
+      padding: 30px 20px;
+      background-color: #FC4F4F;
       color: #fff;
       min-width: 200px;
-      margin: 20px 30px;
+      margin: 40px 40px;
+      border-radius: 12px;
+      text-decoration: none;
+      /* box-shadow: 0 10px 10px rgba(3, 107, 186, 0.5); */
+    }
+
+    a::after {
+      content: "1";
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      /* background-color: #fff; */
+      width: 90%;
+      height: 100%;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(197, 27, 27, 0.5);
+      z-index: -1;
+    }
+
+    a:hover::after {
+      box-shadow: 0 10px 30px rgba(197, 27, 27, 0.5);
+    }
+  </style>
+  <style>
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* background-color: #1f1f1f; */
+      /* font-family: 'Pacifico', serif; */
+      overflow: hidden;
+    }
+
+    span {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-grow: 1;
+    }
+
+    span::after {
+      content: attr(data-text);
+      position: absolute;
+      background-color: #FC4F4F;
+      border-radius: 10px;
+      padding: 6px 20px;
+      font-size: 22px;
+      cursor: pointer;
+      color: #fff;
+      user-select: none;
+      transition: transform 100ms ease-in;
+    }
+
+    span:active::after {
+      transform: scale(0.9);
+    }
+
+    .pumping::after {
+      animation: pumping 100ms ease-in-out infinite;
+    }
+
+    @keyframes pumping {
+      50% {
+        transform: scale(0.95);
+      }
+    }
+
+    .shape {
+      --size: 8px;
+      position: absolute;
+      top: calc(50% - var(--size));
+      left: calc(50% - var(--size));
+      width: calc(var(--size) * 2);
+      height: calc(var(--size) * 2);
+      animation: popup var(--d) cubic-bezier(.08, .56, .53, .98) forwards;
+    }
+
+    .square {
       border-radius: 4px;
+      background-color: var(--c);
+    }
+
+    .circle {
+      border-radius: 50%;
+      background-color: var(--c);
+    }
+
+    .triangle {
+      width: 0px;
+      height: 0px;
+      background-color: none;
+      border-top: var(--size) solid transparent;
+      border-bottom: calc(var(--size) * 2) solid var(--c);
+      border-left: var(--size) solid transparent;
+      border-right: var(--size) solid transparent;
+    }
+
+    .heart {
+      --size: 6px;
+      background-color: var(--c);
+    }
+
+    .heart::before,
+    .heart::after {
+      content: "";
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: var(--c);
+      border-radius: 50%;
+    }
+
+    .heart::before {
+      left: -50%;
+    }
+
+    .heart::after {
+      top: -50%;
+    }
+
+    @keyframes popup {
+      0% {
+        opacity: 0;
+      }
+
+      60% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(var(--x), var(--y)) rotate(var(--r));
+      }
     }
   </style>
 </head>
+
 <body>
-  <a href="./page/加载圈.html">加载圈</a>
-  <a href="./page/复古屏幕效果.html">复古屏幕效果</a>
-  <a href="./page/游动.html">游动</a>
-  <a href="./page/烟雾.html">烟雾</a>
-  <a href="./page/粒子.html">粒子</a>
-  <a href="./page/粒子运动.html">粒子运动</a>
+  <!-- <span class="pumping" data-text="Click Me"></span> -->
+  <div id="box"></div>
+  <script>
+    const map = [
+      '加载圈',
+      '复古屏幕效果',
+      '游动',
+      '烟雾',
+      '粒子',
+      '粒子运动',
+      '彩色文字',
+      '故障词',
+      '随机粒子',
+      '星空',
+      '旋涡',
+      '炫彩油光',
+      '字符矩阵',
+      '粒子矩阵',
+      '迷宫环绕',
+      '烟花',
+      '烟花射击',
+      '火球射击',
+      '下落时间',
+      '特效按钮',
+      '渐变波浪'
+    ];
+    const box = document.getElementById('box');
+    map.forEach(val => {
+      const aTag = document.createElement('a');
+      aTag.href = `./page/${val}.html`
+      aTag.innerHTML = val
+      // aTag.className = 'pumping'
+      box.appendChild(aTag)
+    })
+  </script>
+  <script>
+    const colors = ['#FC4F4F', '#FFBC80', '#FF9F45', '#F76E11']
+    // const shapes = ['square', 'circle', 'triangle', 'heart']
+    const shapes = ['heart']
 
-  <a href="./page/彩色文字.html">彩色文字</a>
-  <a href="./page/故障词.html">故障词</a>
-  <a href="./page/随机粒子.html">随机粒子</a>
-  <a href="./page/星空.html">星空</a>
-  <a href="./page/旋涡.html">旋涡</a>
-  <a href="./page/炫彩油光.html">炫彩油光</a>
-  <a href="./page/字符矩阵.html">字符矩阵</a>
-  <a href="./page/粒子矩阵.html">粒子矩阵</a>
-  <a href="./page/迷宫环绕.html">迷宫环绕</a>
-  <a href="./page/烟花.html">烟花</a>
-  <a href="./page/烟花射击.html">烟花射击</a>
-  <a href="./page/火球射击.html">火球射击</a>
-  <a href="./page/下落时间.html">下落时间</a>
-  <a href="./page/特效按钮.html">特效按钮</a>
-  <a href="./page/渐变波浪.html">渐变波浪</a>
+    const randomIntBetween = (min, max) => {
+      return Math.floor(Math.random() * (max - min + 1) + min)
+    }
 
+    class Particle {
+      constructor({
+        x,
+        y,
+        rotation,
+        shape,
+        color,
+        size,
+        duration,
+        parent
+      }) {
+        this.x = x
+        this.y = y
+        this.parent = parent
+        this.rotation = rotation
+        this.shape = shape
+        this.color = color
+        this.size = size
+        this.duration = duration
+        this.children = document.createElement('div')
+      }
+
+      draw() {
+        this.children.style.setProperty('--x', this.x + 'px')
+        this.children.style.setProperty('--y', this.y + 'px')
+        this.children.style.setProperty('--r', this.rotation + 'deg')
+        this.children.style.setProperty('--c', this.color)
+        this.children.style.setProperty('--size', this.size + 'px')
+        this.children.style.setProperty('--d', this.duration + 'ms')
+        this.children.className = `shape ${this.shape}`
+        this.parent.append(this.children)
+        
+      }
+
+      animate() {
+        this.draw()
+
+        const timer = setTimeout(() => {
+          this.parent.removeChild(this.children)
+          clearTimeout(timer)
+        }, this.duration)
+      }
+    }
+
+    function animateParticles({
+      total,
+      parent
+    }) {
+      for (let i = 0; i < total; i++) {
+        const particle = new Particle({
+          x: randomIntBetween(-200, 200),
+          y: randomIntBetween(-100, -300),
+          rotation: randomIntBetween(-360 * 5, 360 * 5),
+          shape: shapes[randomIntBetween(0, shapes.length - 1)],
+          color: colors[randomIntBetween(0, colors.length - 1)],
+          size: randomIntBetween(4, 7),
+          duration: randomIntBetween(400, 800),
+          parent
+        })
+        particle.animate()
+      }
+    }
+
+    
+    const parents = document.querySelectorAll('a')
+    parents.forEach(parent => {
+      parent.addEventListener("touchstart", () => {}, false);
+      parent.addEventListener("mouseenter", e => {
+        animateParticles({
+          total: 40,
+          parent
+        })
+      })
+      
+    })
+  
+  </script>
 </body>
 
 </html>
