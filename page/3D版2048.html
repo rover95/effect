@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Three.js 3D 2048</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #2f3f66, #121626 55%, #0a0b12);
+      color: #f3f5ff;
+      overflow: hidden;
+    }
+
+    #app {
+      position: fixed;
+      inset: 0;
+    }
+
+    .hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(8, 10, 18, 0.65);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      width: min(360px, calc(100vw - 32px));
+    }
+
+    .hud h1 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .stats {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      flex: 1;
+      border-radius: 10px;
+      padding: 8px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 14px;
+      opacity: 0.82;
+      font-weight: 500;
+    }
+
+    .stat span {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    button {
+      flex: 1;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #f5f6fd;
+      background: linear-gradient(135deg, #4f73ff, #6f8dff);
+      cursor: pointer;
+    }
+
+    button:hover {
+      filter: brightness(1.1);
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.45;
+      opacity: 0.82;
+    }
+
+    #toast {
+      margin-top: 8px;
+      min-height: 18px;
+      color: #ffd28f;
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+  <section class="hud">
+    <h1>3D 版 2048</h1>
+    <div class="stats">
+      <div class="stat">
+        <strong>分数</strong>
+        <span id="score">0</span>
+      </div>
+      <div class="stat">
+        <strong>最高</strong>
+        <span id="best">0</span>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="restart">重新开始</button>
+    </div>
+    <p>操作：方向键 / WASD</p>
+    <p>目标：合成到 2048（或更高）。</p>
+    <div id="toast"></div>
+  </section>
+
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js";
+
+    const GRID = 4;
+    const CELL = 1.32;
+    const LIFT = 0.15;
+    const ANIM = 160;
+
+    const app = document.getElementById("app");
+    const scoreEl = document.getElementById("score");
+    const bestEl = document.getElementById("best");
+    const toastEl = document.getElementById("toast");
+    const restartBtn = document.getElementById("restart");
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x0b1020, 8, 25);
+
+    const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 6.8, 7.4);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    app.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
+    dirLight.position.set(4, 9, 6);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(1024, 1024);
+    scene.add(dirLight);
+
+    const board = new THREE.Group();
+    scene.add(board);
+
+    const floor = new THREE.Mesh(
+      new THREE.BoxGeometry(GRID * CELL + 0.7, 0.55, GRID * CELL + 0.7),
+      new THREE.MeshStandardMaterial({ color: 0x212741, roughness: 0.7, metalness: 0.2 })
+    );
+    floor.position.y = -0.28;
+    floor.receiveShadow = true;
+    board.add(floor);
+
+    const slotGeo = new THREE.BoxGeometry(1.08, 0.12, 1.08);
+    const slotMat = new THREE.MeshStandardMaterial({ color: 0x2d3558, roughness: 0.8, metalness: 0.1 });
+    for (let r = 0; r < GRID; r++) {
+      for (let c = 0; c < GRID; c++) {
+        const slot = new THREE.Mesh(slotGeo, slotMat);
+        const p = toWorld(r, c);
+        slot.position.set(p.x, 0, p.z);
+        board.add(slot);
+      }
+    }
+
+    const tileGeo = new THREE.BoxGeometry(1, 0.72, 1);
+    const tiles = new Map();
+    let grid = emptyGrid();
+    let nextId = 1;
+    let score = 0;
+    let best = Number(localStorage.getItem("best3d2048") || 0);
+    let isLocked = false;
+
+    bestEl.textContent = String(best);
+
+    const palette = {
+      2: "#c8e6ff",
+      4: "#b8f2d9",
+      8: "#f7f3a2",
+      16: "#ffd188",
+      32: "#ffba84",
+      64: "#ff907d",
+      128: "#dba7ff",
+      256: "#b8bbff",
+      512: "#96d5ff",
+      1024: "#8ee9d6",
+      2048: "#ffe37b"
+    };
+
+    const keyMap = {
+      ArrowLeft: "left",
+      ArrowRight: "right",
+      ArrowUp: "up",
+      ArrowDown: "down",
+      a: "left",
+      d: "right",
+      w: "up",
+      s: "down"
+    };
+
+    restartBtn.addEventListener("click", reset);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onResize);
+
+    reset();
+    animate();
+
+    function reset() {
+      for (const tile of tiles.values()) {
+        board.remove(tile.mesh);
+        tile.mesh.material.map?.dispose();
+        tile.mesh.material.dispose();
+      }
+      tiles.clear();
+      grid = emptyGrid();
+      score = 0;
+      isLocked = false;
+      toast("");
+      updateScore();
+      spawn();
+      spawn();
+      rebuildFromGrid();
+    }
+
+    function emptyGrid() {
+      return Array.from({ length: GRID }, () => Array(GRID).fill(0));
+    }
+
+    function toWorld(row, col) {
+      const offset = (GRID - 1) / 2;
+      return {
+        x: (col - offset) * CELL,
+        z: (row - offset) * CELL
+      };
+    }
+
+    function spawn() {
+      const empties = [];
+      for (let r = 0; r < GRID; r++) {
+        for (let c = 0; c < GRID; c++) {
+          if (!grid[r][c]) empties.push([r, c]);
+        }
+      }
+      if (!empties.length) return false;
+      const [r, c] = empties[Math.floor(Math.random() * empties.length)];
+      grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+      return true;
+    }
+
+    function rebuildFromGrid() {
+      for (const [id, tile] of tiles) {
+        if (!tile.keep) {
+          board.remove(tile.mesh);
+          tile.mesh.material.map?.dispose();
+          tile.mesh.material.dispose();
+          tiles.delete(id);
+        }
+      }
+
+      for (let r = 0; r < GRID; r++) {
+        for (let c = 0; c < GRID; c++) {
+          const value = grid[r][c];
+          if (!value) continue;
+          const id = nextId++;
+          const mesh = createTile(value);
+          const p = toWorld(r, c);
+          mesh.position.set(p.x, LIFT, p.z);
+          mesh.scale.setScalar(0.001);
+          board.add(mesh);
+          tiles.set(id, { id, row: r, col: c, value, mesh, keep: true });
+          pop(mesh);
+        }
+      }
+    }
+
+    function createTile(value) {
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.35,
+        metalness: 0.08,
+        map: createLabelTexture(value)
+      });
+      const mesh = new THREE.Mesh(tileGeo, material);
+      mesh.castShadow = true;
+      return mesh;
+    }
+
+    function createLabelTexture(value) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext("2d");
+      const color = palette[value] || "#ffffff";
+
+      ctx.fillStyle = color;
+      roundRect(ctx, 30, 30, 452, 452, 75);
+      ctx.fill();
+
+      ctx.fillStyle = value >= 128 ? "#1d1e2b" : "#253041";
+      ctx.font = `bold ${value >= 1024 ? 128 : value >= 128 ? 148 : 172}px Arial`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(value), 256, 270);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.anisotropy = 8;
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function onKeyDown(e) {
+      const dir = keyMap[e.key] || keyMap[e.key.toLowerCase?.() || ""];
+      if (!dir || isLocked) return;
+      e.preventDefault();
+      handleMove(dir);
+    }
+
+    async function handleMove(direction) {
+      isLocked = true;
+      const result = slide(grid, direction);
+      if (!result.moved) {
+        isLocked = false;
+        return;
+      }
+
+      grid = result.grid;
+      score += result.gain;
+      updateScore();
+      await animateToGrid();
+
+      spawn();
+      syncTiles();
+
+      if (has2048()) {
+        toast("🎉 恭喜，已达到 2048！");
+      } else if (!canMove()) {
+        toast("游戏结束：已无可移动方块，点击“重新开始”。");
+      } else {
+        toast("");
+      }
+
+      isLocked = false;
+    }
+
+    function has2048() {
+      return grid.some(row => row.some(v => v >= 2048));
+    }
+
+    function canMove() {
+      for (let r = 0; r < GRID; r++) {
+        for (let c = 0; c < GRID; c++) {
+          const v = grid[r][c];
+          if (!v) return true;
+          if (r + 1 < GRID && grid[r + 1][c] === v) return true;
+          if (c + 1 < GRID && grid[r][c + 1] === v) return true;
+        }
+      }
+      return false;
+    }
+
+    function slide(sourceGrid, dir) {
+      const dst = emptyGrid();
+      let moved = false;
+      let gain = 0;
+
+      const iterate = [];
+      for (let i = 0; i < GRID; i++) iterate.push(i);
+
+      const lines = [];
+      if (dir === "left" || dir === "right") {
+        for (let r = 0; r < GRID; r++) {
+          const cols = dir === "left" ? iterate : [...iterate].reverse();
+          lines.push(cols.map(c => [r, c]));
+        }
+      } else {
+        for (let c = 0; c < GRID; c++) {
+          const rows = dir === "up" ? iterate : [...iterate].reverse();
+          lines.push(rows.map(r => [r, c]));
+        }
+      }
+
+      for (const line of lines) {
+        const vals = line.map(([r, c]) => sourceGrid[r][c]).filter(Boolean);
+        const merged = [];
+        for (let i = 0; i < vals.length; i++) {
+          if (vals[i + 1] && vals[i] === vals[i + 1]) {
+            const v = vals[i] * 2;
+            merged.push(v);
+            gain += v;
+            i++;
+          } else {
+            merged.push(vals[i]);
+          }
+        }
+
+        while (merged.length < GRID) merged.push(0);
+        line.forEach(([r, c], idx) => {
+          dst[r][c] = merged[idx];
+          if (sourceGrid[r][c] !== dst[r][c]) moved = true;
+        });
+      }
+
+      return { grid: dst, moved, gain };
+    }
+
+    function syncTiles() {
+      for (const tile of tiles.values()) {
+        board.remove(tile.mesh);
+        tile.mesh.material.map?.dispose();
+        tile.mesh.material.dispose();
+      }
+      tiles.clear();
+
+      for (let r = 0; r < GRID; r++) {
+        for (let c = 0; c < GRID; c++) {
+          const value = grid[r][c];
+          if (!value) continue;
+          const mesh = createTile(value);
+          const p = toWorld(r, c);
+          mesh.position.set(p.x, LIFT, p.z);
+          mesh.scale.setScalar(0.001);
+          board.add(mesh);
+          tiles.set(nextId, { id: nextId, row: r, col: c, value, mesh });
+          nextId++;
+          pop(mesh);
+        }
+      }
+    }
+
+    function pop(mesh) {
+      const start = performance.now();
+      const tick = () => {
+        const t = Math.min((performance.now() - start) / 110, 1);
+        const k = 1 - Math.pow(1 - t, 3);
+        mesh.scale.setScalar(k);
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      tick();
+    }
+
+    function animateToGrid() {
+      const animations = [];
+      const taken = new Set();
+
+      for (const tile of tiles.values()) {
+        let bestPos = null;
+        let bestDist = Infinity;
+
+        for (let r = 0; r < GRID; r++) {
+          for (let c = 0; c < GRID; c++) {
+            if (grid[r][c] !== tile.value) continue;
+            const key = `${r}-${c}-${tile.value}`;
+            if (taken.has(key)) continue;
+            const d = Math.abs(tile.row - r) + Math.abs(tile.col - c);
+            if (d < bestDist) {
+              bestDist = d;
+              bestPos = { r, c, key };
+            }
+          }
+        }
+
+        if (!bestPos) continue;
+        taken.add(bestPos.key);
+
+        const from = tile.mesh.position.clone();
+        const toCell = toWorld(bestPos.r, bestPos.c);
+        const to = new THREE.Vector3(toCell.x, LIFT, toCell.z);
+
+        tile.row = bestPos.r;
+        tile.col = bestPos.c;
+
+        animations.push({ tile, from, to });
+      }
+
+      return new Promise(resolve => {
+        const start = performance.now();
+        const run = () => {
+          const t = Math.min((performance.now() - start) / ANIM, 1);
+          const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+          for (const item of animations) {
+            item.tile.mesh.position.lerpVectors(item.from, item.to, e);
+          }
+
+          if (t < 1) {
+            requestAnimationFrame(run);
+          } else {
+            resolve();
+          }
+        };
+        run();
+      });
+    }
+
+    function updateScore() {
+      scoreEl.textContent = String(score);
+      if (score > best) {
+        best = score;
+        localStorage.setItem("best3d2048", String(best));
+      }
+      bestEl.textContent = String(best);
+    }
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      board.rotation.y += 0.002;
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+
+</html>
